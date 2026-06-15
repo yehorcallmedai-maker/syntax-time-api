@@ -1,0 +1,35 @@
+{
+  "_comment": "Leibniz 64-Phase RBN — Xiantiantu Topology Configuration",
+  "rbn": {
+    "N": 6,
+    "K": 2,
+    "langton_lambda": 0.5,
+    "default_seed": 1701,
+    "num_phases": 64
+  },
+  "hypervisor": {
+    "virtualization_levels": ["L0_physical_host", "L1_architect", "L2_guest_simulation"],
+    "interrupt_modes": {
+      "ACPI_SHUTDOWN": {
+        "description": "Graceful entropic descent to Kun (state 0 / 000000)",
+        "final_state": 0,
+        "flag": "AUTOMATIC_TRANSITION"
+      },
+      "VM_EXIT_SUSPEND": {
+        "description": "Instant VMCS freeze, time suspended, VMRESUME blocked",
+        "exit_reason": "EXIT_REASON_HLT",
+        "flag": "STATIC_STASIS"
+      }
+    }
+  },
+  "xiantiantu_phases": {
+    "000000": { "index": 0,  "name": "Kun",  "element": "Earth", "role": "terminal_attractor" },
+    "111111": { "index": 63, "name": "Qian", "element": "Heaven", "role": "maximum_energy" },
+    "_note": "Full 64-hexagram mapping omitted for brevity; derive from Shao Yong binary sequence"
+  },
+  "simulation_defaults": {
+    "max_steps": 100,
+    "default_initial_state": 0,
+    "adversarial_seed": 7
+  }
+}
