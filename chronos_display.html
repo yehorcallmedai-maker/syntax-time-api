@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYNTAX // TIME — Leibniz 64-Phase</title>
+<style>
+  /* ── Reset ──────────────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── Root ───────────────────────────────────────────────────────────── */
+  :root {
+    --bg:         #0a0a0a;
+    --surface:    #111113;
+    --border:     #1e1e21;
+    --muted:      #3a3a3e;
+    --dim:        #5a5a60;
+    --label:      #7a7a82;
+    --body:       #c8c6c1;
+    --bright:     #e8e6e1;
+    --accent:     #c8b87a;
+    --accent-dim: #7a6e48;
+    --mono:       ui-monospace, 'SF Mono', 'Fira Mono', 'Cascadia Code', monospace;
+    --sans:       'Inter', 'Helvetica Neue', system-ui, sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--body);
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.6;
+    /* Soft top-left directional light */
+    background-image:
+      radial-gradient(ellipse 80% 60% at 0% 0%, rgba(255,255,255,0.028) 0%, transparent 65%),
+      radial-gradient(ellipse 40% 30% at 0% 0%, rgba(255,255,255,0.018) 0%, transparent 40%);
+  }
+
+  /* ── Layout ─────────────────────────────────────────────────────────── */
+  .shell {
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    padding: 48px 56px 40px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  /* ── Header ─────────────────────────────────────────────────────────── */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 40px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 52px;
+  }
+
+  .wordmark {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .wordmark-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--bright);
+  }
+
+  .wordmark-sub {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  .utc-clock {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 0.08em;
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  .utc-live {
+    color: var(--label);
+  }
+
+  /* ── Main grid ───────────────────────────────────────────────────────── */
+  .phase-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .phase-cell {
+    background: var(--bg);
+    padding: 36px 36px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  /* ── Cell header ─────────────────────────────────────────────────────── */
+  .cell-label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .cell-tag {
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  .cell-name {
+    font-size: 14px;
+    font-weight: 300;
+    letter-spacing: 0.06em;
+    color: var(--bright);
+  }
+
+  .cell-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  /* ── Binary display ──────────────────────────────────────────────────── */
+  .binary-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .binary-string {
+    display: flex;
+    gap: 8px;
+  }
+
+  .bit {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 200;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    transition: color 0.4s ease;
+    line-height: 1;
+  }
+
+  .bit.on {
+    color: var(--bright);
+  }
+
+  .binary-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* ── Integer readout ─────────────────────────────────────────────────── */
+  .int-readout {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .int-value {
+    font-family: var(--mono);
+    font-size: 42px;
+    font-weight: 200;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    min-width: 2.4ch;
+  }
+
+  .int-denom {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    padding-top: 2px;
+  }
+
+  /* ── Phase bar ───────────────────────────────────────────────────────── */
+  .phase-bar-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .phase-bar-track {
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+    position: relative;
+  }
+
+  .phase-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 6px rgba(200, 184, 122, 0.4);
+  }
+
+  .phase-bar-ticks {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .phase-tick {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  /* ── Phase pip grid ──────────────────────────────────────────────────── */
+  .pip-grid {
+    display: grid;
+    grid-template-columns: repeat(32, 1fr);
+    gap: 2px;
+  }
+
+  .pip {
+    height: 3px;
+    background: var(--border);
+    transition: background 0.4s ease;
+  }
+
+  .pip.active {
+    background: var(--accent-dim);
+  }
+
+  .pip.current {
+    background: var(--accent);
+  }
+
+  /* ── Divider cell (full width) ───────────────────────────────────────── */
+  .divider-cell {
+    grid-column: 1 / -1;
+    background: var(--bg);
+    padding: 28px 36px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .combined-binary {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .combined-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  .combined-string {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 200;
+    color: var(--body);
+    letter-spacing: 0.14em;
+  }
+
+  .combined-string span.hi { color: var(--bright); }
+  .combined-string .sep { color: var(--muted); margin: 0 8px; }
+
+  .status-dot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+  }
+
+  .dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 4px rgba(200, 184, 122, 0.6);
+  }
+
+  /* ── Footer ──────────────────────────────────────────────────────────── */
+  footer {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-note {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+
+  .footer-hash {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-align: right;
+  }
+
+  /* ── Error state ─────────────────────────────────────────────────────── */
+  .error-banner {
+    display: none;
+    grid-column: 1 / -1;
+    background: var(--bg);
+    padding: 20px 36px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #8a4a4a;
+    letter-spacing: 0.08em;
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ── Header ─────────────────────────────────────────────────────── -->
+  <header>
+    <div class="wordmark">
+      <div class="wordmark-title">SYNTAX // TIME</div>
+      <div class="wordmark-sub">Leibniz 64-Phase · N=6 K=2 λ=0.5</div>
+    </div>
+    <div class="utc-clock">
+      <div class="utc-live" id="utc-live">——</div>
+      <div>UTC SYNCHRONISED</div>
+    </div>
+  </header>
+
+  <!-- ── Phase grid ─────────────────────────────────────────────────── -->
+  <main>
+    <div class="phase-grid">
+
+      <!-- MACRO -->
+      <div class="phase-cell">
+        <div class="cell-label">
+          <div class="cell-tag">Macro Phase · Calendar</div>
+          <div class="cell-name">Solar Year Position</div>
+          <div class="cell-meta" id="macro-meta">365.24 days ÷ 64 = 5.70688 days / block</div>
+        </div>
+
+        <div class="binary-row">
+          <div class="binary-string" id="macro-bits">
+            <span class="bit">0</span><span class="bit">0</span>
+            <span class="bit">0</span><span class="bit">0</span>
+            <span class="bit">0</span><span class="bit">0</span>
+          </div>
+          <div class="binary-label">6-BIT STATE VECTOR</div>
+        </div>
+
+        <div class="int-readout">
+          <div class="int-value" id="macro-int">—</div>
+          <div class="int-denom">/ 63</div>
+        </div>
+
+        <div class="phase-bar-wrap">
+          <div class="phase-bar-track">
+            <div class="phase-bar-fill" id="macro-bar" style="width:0%"></div>
+          </div>
+          <div class="phase-bar-ticks">
+            <span class="phase-tick">0</span>
+            <span class="phase-tick">16</span>
+            <span class="phase-tick">32</span>
+            <span class="phase-tick">48</span>
+            <span class="phase-tick">63</span>
+          </div>
+        </div>
+
+        <div class="pip-grid" id="macro-pips"></div>
+      </div>
+
+      <!-- MICRO -->
+      <div class="phase-cell">
+        <div class="cell-label">
+          <div class="cell-tag">Micro Phase · Clock</div>
+          <div class="cell-name">Daily Cycle Position</div>
+          <div class="cell-meta" id="micro-meta">1440 min ÷ 64 = 22.5 min / block</div>
+        </div>
+
+        <div class="binary-row">
+          <div class="binary-string" id="micro-bits">
+            <span class="bit">0</span><span class="bit">0</span>
+            <span class="bit">0</span><span class="bit">0</span>
+            <span class="bit">0</span><span class="bit">0</span>
+          </div>
+          <div class="binary-label">6-BIT STATE VECTOR</div>
+        </div>
+
+        <div class="int-readout">
+          <div class="int-value" id="micro-int">—</div>
+          <div class="int-denom">/ 63</div>
+        </div>
+
+        <div class="phase-bar-wrap">
+          <div class="phase-bar-track">
+            <div class="phase-bar-fill" id="micro-bar" style="width:0%"></div>
+          </div>
+          <div class="phase-bar-ticks">
+            <span class="phase-tick">0</span>
+            <span class="phase-tick">16</span>
+            <span class="phase-tick">32</span>
+            <span class="phase-tick">48</span>
+            <span class="phase-tick">63</span>
+          </div>
+        </div>
+
+        <div class="pip-grid" id="micro-pips"></div>
+      </div>
+
+      <!-- Combined readout -->
+      <div class="divider-cell">
+        <div class="combined-binary">
+          <div class="combined-label">State Vector</div>
+          <div class="combined-string">
+            <span id="combined-macro">000000</span>
+            <span class="sep">·</span>
+            <span id="combined-micro">000000</span>
+          </div>
+        </div>
+        <div class="status-dot">
+          <div class="dot"></div>
+          <span id="sync-label">POLLING</span>
+        </div>
+      </div>
+
+      <div class="error-banner" id="error-banner">
+        CONNECTION ERROR — ensure uvicorn is running on localhost:8000
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ── Footer ─────────────────────────────────────────────────────── -->
+  <footer>
+    <div class="footer-note">GET /time-phase · polling every 22.5 s</div>
+    <div class="footer-hash">
+      SHA-256 efa5f43b…d086ad80d<br>
+      DIRECTOR ЕГОР · 2026-06-15 · 10/10
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  const API = 'https://syntax-time-api.onrender.com/time-phase';
+  const POLL_MS = 22500; // 22.5 seconds — one micro-block
+
+  // ── Pip grids ─────────────────────────────────────────────────────────
+  function buildPips(containerId) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = '';
+    for (let i = 0; i < 64; i++) {
+      const pip = document.createElement('div');
+      pip.className = 'pip';
+      pip.dataset.i = i;
+      el.appendChild(pip);
+    }
+  }
+
+  function updatePips(containerId, current) {
+    const pips = document.getElementById(containerId).children;
+    for (let i = 0; i < pips.length; i++) {
+      pips[i].classList.remove('active', 'current');
+      if (i < current) pips[i].classList.add('active');
+      if (i === current) pips[i].classList.add('current');
+    }
+  }
+
+  // ── Binary bits ───────────────────────────────────────────────────────
+  function updateBits(containerId, binStr) {
+    const bits = document.getElementById(containerId).children;
+    for (let i = 0; i < 6; i++) {
+      bits[i].textContent = binStr[i];
+      bits[i].classList.toggle('on', binStr[i] === '1');
+    }
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────
+  function render(data) {
+    // Macro
+    updateBits('macro-bits', data.macro_state_bin);
+    document.getElementById('macro-int').textContent = data.macro_state_int;
+    document.getElementById('macro-bar').style.width =
+      ((data.macro_state_int / 63) * 100).toFixed(2) + '%';
+    updatePips('macro-pips', data.macro_state_int);
+    document.getElementById('combined-macro').textContent = data.macro_state_bin;
+
+    // Micro
+    updateBits('micro-bits', data.micro_state_bin);
+    document.getElementById('micro-int').textContent = data.micro_state_int;
+    document.getElementById('micro-bar').style.width =
+      ((data.micro_state_int / 63) * 100).toFixed(2) + '%';
+    updatePips('micro-pips', data.micro_state_int);
+    document.getElementById('combined-micro').textContent = data.micro_state_bin;
+
+    // Header clock
+    document.getElementById('utc-live').textContent = data.utc_timestamp;
+    document.getElementById('sync-label').textContent = 'LIVE';
+    document.getElementById('error-banner').style.display = 'none';
+  }
+
+  // ── Fetch ─────────────────────────────────────────────────────────────
+  async function poll() {
+    try {
+      const res = await fetch(API);
+      if (!res.ok) throw new Error(res.status);
+      const data = await res.json();
+      render(data);
+    } catch (e) {
+      document.getElementById('sync-label').textContent = 'OFFLINE';
+      document.getElementById('error-banner').style.display = 'block';
+    }
+  }
+
+  // ── Live UTC clock (updates every second independent of poll) ─────────
+  function tickClock() {
+    const now = new Date();
+    const iso = now.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+    // Only update if not yet set by API response
+    const el = document.getElementById('utc-live');
+    if (el.textContent === '——') el.textContent = iso;
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────
+  buildPips('macro-pips');
+  buildPips('micro-pips');
+  tickClock();
+  poll();
+  setInterval(poll, POLL_MS);
+  setInterval(tickClock, 1000);
+</script>
+</body>
+</html>
